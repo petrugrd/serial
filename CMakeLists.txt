@@ -1,29 +1,9 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.22)
 project(serial)
-
-# Find catkin
-find_package(catkin REQUIRED)
 
 if(APPLE)
     find_library(IOKIT_LIBRARY IOKit)
     find_library(FOUNDATION_LIBRARY Foundation)
-endif()
-
-if(UNIX AND NOT APPLE)
-    # If Linux, add rt and pthread
-    set(rt_LIBRARIES rt)
-    set(pthread_LIBRARIES pthread)
-    catkin_package(
-        LIBRARIES ${PROJECT_NAME}
-        INCLUDE_DIRS include
-        DEPENDS rt pthread
-    )
-else()
-    # Otherwise normal call
-    catkin_package(
-        LIBRARIES ${PROJECT_NAME}
-        INCLUDE_DIRS include
-    )
 endif()
 
 ## Sources
@@ -40,6 +20,8 @@ elseif(UNIX)
     # If unix
     list(APPEND serial_SRCS src/impl/unix.cc)
     list(APPEND serial_SRCS src/impl/list_ports/list_ports_linux.cc)
+    # Add -fPIC to compile with Position Independent Code (PIC) on Unix-like systems
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 else()
     # If windows
     list(APPEND serial_SRCS src/impl/win.cc)
@@ -64,18 +46,21 @@ target_link_libraries(serial_example ${PROJECT_NAME})
 ## Include headers
 include_directories(include)
 
-## Install executable
-install(TARGETS ${PROJECT_NAME}
-    ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-    RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+## Install library and headers
+install(TARGETS
+        ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Config
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-## Install headers
-install(FILES include/serial/serial.h include/serial/v8stdint.h
-  DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}/serial)
+install(EXPORT
+        ${PROJECT_NAME}Config
+    DESTINATION share/${PROJECT_NAME}/cmake
+)
 
-## Tests
-if(CATKIN_ENABLE_TESTING)
-    add_subdirectory(tests)
-endif()
+install(FILES 
+        "include/serial/serial.h" "include/serial/v8stdint.h"
+        DESTINATION "include/serial"
+)
